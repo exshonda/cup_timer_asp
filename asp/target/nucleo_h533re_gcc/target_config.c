@@ -92,9 +92,8 @@ target_initialize(void)
 	 *  HALによる初期化
 	 *  HAL_Init() : stm32f4xx_hal.c の内容から必要な初期化のみ呼び出す．
 	 */
-	__HAL_FLASH_INSTRUCTION_CACHE_ENABLE();
-	__HAL_FLASH_DATA_CACHE_ENABLE();
-	__HAL_FLASH_PREFETCH_BUFFER_ENABLE();
+	/* STM32H5 はF4のFLASH I/D-cache/prefetchマクロを持たない。
+	   命令キャッシュはICACHEペリフェラルだが、起動検証では未使用でも可。 */
 
 	/*
 	 *  クロックの初期化
@@ -147,7 +146,7 @@ usart_early_init()
 	GPIO_InitStruct.Pin       = GPIO_PIN_2;
 	GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull      = GPIO_PULLUP;
-	GPIO_InitStruct.Speed     = GPIO_SPEED_FAST;
+	GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_HIGH;
 	GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
 
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);

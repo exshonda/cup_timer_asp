@@ -12,8 +12,10 @@ TOOL  = gcc
 
 #
 #  FPUを使用するか
+#  （Step2a切り分け: M33でのFPU遅延スタッキング/EXC_RETURN差を排除するため
+#    FPUを無効化＝純ソフト浮動小数点。未設定でMakefile.coreのFPU分岐を全てスキップ）
 #
-FPU_USAGE = FPU_LAZYSTACKING
+FPU_USAGE =
 
 #
 #  コンパイルオプション

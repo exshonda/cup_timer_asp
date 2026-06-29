@@ -55,15 +55,16 @@
 #define GET_SIOPCB(x)	(&siopcb_table[INDEX_PORT(x)])
 
 /*
- * USARTレジスタ定義
+ * USARTレジスタ定義（STM32H5 USART v2）
  */
-#define USART_SR(x)		(x)
-#define USART_DR(x)		(x + 0x04)
-#define USART_BRR(x)	(x + 0x08)
-#define USART_CR1(x)	(x + 0x0C)
-#define USART_CR2(x)	(x + 0x10)
-#define USART_CR3(x)	(x + 0x14)
-#define USART_GTPR(x)	(x + 0x18)
+#define USART_CR1(x)	((x) + 0x00)
+#define USART_CR2(x)	((x) + 0x04)
+#define USART_CR3(x)	((x) + 0x08)
+#define USART_BRR(x)	((x) + 0x0C)
+#define USART_ISR(x)	((x) + 0x1C)	/* 旧SR相当 */
+#define USART_ICR(x)	((x) + 0x20)
+#define USART_RDR(x)	((x) + 0x24)	/* 受信データ */
+#define USART_TDR(x)	((x) + 0x28)	/* 送信データ */
 
 /*
  *  シリアルポートの管理ブロック
@@ -89,13 +90,13 @@ static const uint32_t sioreg_table[TNUM_PORT] = {
 Inline bool_t
 sio_putready(SIOPCB* siopcb)
 {
-	return (sil_rew_mem((void*)USART_SR(siopcb->reg)) & USART_SR_TXE) != 0;
+	return (sil_rew_mem((void*)USART_ISR(siopcb->reg)) & USART_ISR_TXE) != 0;
 }
 
 Inline bool_t
 sio_getready(SIOPCB* siopcb)
 {
-	return (sil_rew_mem((void*)USART_SR(siopcb->reg)) & USART_SR_RXNE) != 0;
+	return (sil_rew_mem((void*)USART_ISR(siopcb->reg)) & USART_ISR_RXNE) != 0;
 }
 
 /*
@@ -104,7 +105,7 @@ sio_getready(SIOPCB* siopcb)
 void
 usart_init(ID siopid)
 {
-	uint32_t tmp, usartdiv, fraction;
+	uint32_t usartdiv;
 	uint32_t reg = sioreg_table[INDEX_PORT(siopid)];
 	uint32_t src_clock;
 
@@ -127,11 +128,8 @@ usart_init(ID siopid)
 	} else {
 		src_clock = HAL_RCC_GetPCLK1Freq();
 	}
-	tmp = (1000 * (src_clock / 100)) / ((BPS_SETTING / 100) * 16);
-	usartdiv = (tmp / 1000) << 4;
-	fraction = tmp - ((usartdiv >> 4) * 1000);
-	fraction = ((16 * fraction) + 500) / 1000;
-	usartdiv |= (fraction & 0x0F);
+	/* USART v2 (OVER16): BRR = ker_ck / baud（四捨五入） */
+	usartdiv = (src_clock + (BPS_SETTING / 2)) / BPS_SETTING;
 	sil_wrw_mem((void*)USART_BRR(reg), usartdiv);
 
 	/* 送受信の有効化、エラー割込みの有効化 */
@@ -221,7 +219,7 @@ bool_t
 sio_snd_chr(SIOPCB *siopcb, char c)
 {
 	if (sio_putready(siopcb)) {
-		sil_wrw_mem((void*)USART_DR(siopcb->reg), c);
+		sil_wrw_mem((void*)USART_TDR(siopcb->reg), c);
 
 		return true;
 	}
@@ -238,7 +236,7 @@ sio_rcv_chr(SIOPCB *siopcb)
 	int_t c = -1;
 
 	if (sio_getready(siopcb)) {
-		c = sil_rew_mem((void*)USART_DR(siopcb->reg)) & 0xFF;
+		c = sil_rew_mem((void*)USART_RDR(siopcb->reg)) & 0xFF;
 	}
 
 	return c;
@@ -288,7 +286,7 @@ sio_pol_snd_chr(char c, ID siopid)
 {
 	uint32_t reg = sioreg_table[INDEX_PORT(siopid)];
 
-	sil_wrw_mem((void*)USART_DR(reg), c);
+	while ((sil_rew_mem((void*)USART_ISR(reg)) & USART_ISR_TXE) == 0) ;
 
-	while ((sil_rew_mem((void*)USART_SR(reg)) & USART_SR_TXE) == 0) ;
+	sil_wrw_mem((void*)USART_TDR(reg), c);
 }

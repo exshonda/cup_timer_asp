@@ -1,2 +1,14 @@
 program_asp_/
 build_h533re_sample1/
+*.o
+*.d
+*.elf
+*.srec
+*.syms
+*.bin
+*.map
+cfg1_out.*
+kernel_cfg.*
+libkernel.a
+offset.h
+makeoffset.s

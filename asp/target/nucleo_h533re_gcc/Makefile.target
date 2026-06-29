@@ -1,0 +1,112 @@
+#
+#		Makefile のターゲット依存部（NUCLEO_H533RE用）
+#
+
+#
+#  ボード名, チップ名，コア名，開発環境名の定義
+#
+BOARD = nucleo_h533re
+CHIP  = stm32h5xx_stm32cube
+PRC   = arm_m
+TOOL  = gcc
+
+#
+#  FPUを使用するか
+#
+FPU_USAGE = FPU_LAZYSTACKING
+
+#
+#  コンパイルオプション
+#
+INCLUDES := $(INCLUDES) -I$(TARGETDIR) -I$(TARGETDIR)/stm32fcube
+CDEFS := $(CDEFS) -DSTM32H533xx
+COPTS := $(COPTS)
+LDFLAGS := -nostdlib $(LDFLAGS)
+CFG1_OUT_LDFLAGS := -nostdlib $(CFG1_OUT_LDFLAGS)
+
+#
+# ファイルサイズ削減のためのオプション
+#
+COPTS   := $(COPTS) -ffunction-sections -fdata-sections
+LDFLAGS := $(LDFLAGS) -Wl,--gc-sections
+
+#
+#  カーネルに関する定義
+#
+KERNEL_DIR := $(KERNEL_DIR) $(TARGETDIR) $(TARGETDIR)/stm32fcube
+KERNEL_ASMOBJS := $(KERNEL_ASMOBJS) start.o
+KERNEL_COBJS := $(KERNEL_COBJS) target_config.o \
+                system_stm32h5xx.o stm32h5xx_nucleo.o systemclock_config.o \
+                stm32h5xx_hal_gpio.o stm32h5xx_hal_uart.o \
+                stm32h5xx_hal_rcc.o stm32h5xx_hal_rcc_ex.o stm32h5xx_hal_pwr.o \
+                stm32h5xx_hal_pwr_ex.o stm32h5xx_hal_cortex.o stm32h5xx_hal.o
+KERNEL_CFLAGS := $(KERNEL_CFLAGS)
+
+#
+#  システムサービスに関する定義
+#
+SYSSVC_DIR := $(SYSSVC_DIR)
+SYSSVC_COBJS := $(SYSSVC_COBJS) usart.o
+
+#
+#  GNU開発環境のターゲットアーキテクチャの定義
+#
+GCC_TARGET = arm-none-eabi
+
+#
+#  リンカスクリプトの定義
+#
+LDSCRIPT = $(SRCDIR)/target/$(BOARD)_$(TOOL)/stm32h533re.ld
+
+#
+#  依存関係の定義
+#
+kernel_cfg.timestamp: $(TARGETDIR)/target.tf
+$(OBJFILE): $(TARGETDIR)/target_check.tf
+
+#
+#  チップ依存部のインクルード
+#
+include $(SRCDIR)/arch/$(PRC)_$(TOOL)/$(CHIP)/Makefile.chip
+
+#
+#  ST-LINKによるフラッシュ書き込み・デバッグ
+#  （STM32CubeIDE 2.1.1 に同梱されているツールを使用する）
+#
+
+#
+#  STM32CubeIDE 同梱ツールのパス
+#    実行ファイルはWindowsパスで起動でき、引数のパスもWindows形式で渡す。
+#    STM32CUBEIDE_PLUGINS はプロジェクトの Makefile で指定する
+#    （未指定の場合は以下の既定値を使用）。
+#
+STM32CUBEIDE_PLUGINS ?= C:/sw/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins
+CUBEPROG_BIN     = $(STM32CUBEIDE_PLUGINS)/com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_2.2.400.202601091506/tools/bin
+STLINK_PROG      = $(CUBEPROG_BIN)/STM32_Programmer_CLI.exe
+STLINK_GDBSERVER = $(STM32CUBEIDE_PLUGINS)/com.st.stm32cube.ide.mcu.externaltools.stlink-gdb-server.win32_2.2.400.202601091506/tools/bin/ST-LINK_gdbserver.exe
+GDB              = $(STM32CUBEIDE_PLUGINS)/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.win32_1.0.100.202602081740/tools/bin/arm-none-eabi-gdb.exe
+
+#
+#  新しいCygwinターミナル（mintty + bash -l -c）を起動するための定義
+#
+CYGWIN_TERM = C:/cygwin64/bin/mintty.exe
+
+#
+#  gdbserver が待ち受けるTCPポート（gdb.ini の target remote と合わせる）
+#
+GDB_PORT = 3333
+
+#
+#  run: ST-LINKでターゲット（asp.elf）をロードして実行
+#
+run: $(OBJFILE)
+	"$(STLINK_PROG)" -c port=SWD -w ./$(OBJFILE) -v -hardRst
+
+#
+#  db: gdbserverを別のCygwinターミナルで起動し、
+#      gdbで接続してダウンロードデバッグを行う（旧 ocd と db を統合）
+#
+db: $(OBJFILE)
+	"$(CYGWIN_TERM)" -h always -t "ST-LINK gdbserver" -e /bin/bash -l -c '"$(STLINK_GDBSERVER)" -p $(GDB_PORT) -cp "$(CUBEPROG_BIN)" -d -s -e --halt' &
+	sleep 2
+	"$(GDB)" $(OBJFILE) -x $(TARGETDIR)/gdb.ini

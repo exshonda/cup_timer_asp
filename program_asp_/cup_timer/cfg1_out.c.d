@@ -1,1 +1,0 @@
-cfg1_out.c: asp_prog.cfg ../../asp/arch/arm_m_gcc/common/core_timer.cfg ../../asp/syssvc/banner.cfg ../../asp/syssvc/logtask.cfg ../../asp/syssvc/serial.cfg ../../asp/syssvc/syslog.cfg ../../asp/target/nucleo_f401re_gcc/target_serial.cfg ../../asp/target/nucleo_f401re_gcc/target_timer.cfg 

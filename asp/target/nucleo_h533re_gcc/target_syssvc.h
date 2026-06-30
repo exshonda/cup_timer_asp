@@ -50,7 +50,7 @@
 /*
  *  起動メッセージのターゲットシステム名
  */
-#define TARGET_NAME    "NUCLEO(STM32F401RE)"
+#define TARGET_NAME    "NUCLEO(STM32H533RE)"
 
 /*
  *  システムログの低レベル出力のための文字出力

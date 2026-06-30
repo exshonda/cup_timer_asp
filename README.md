@@ -19,7 +19,8 @@ cup_timer_asp/
 ├── asp/               TOPPERS/ASP カーネル本体＋ターゲット依存部
 │                       （target/nucleo_f401re_gcc, target/nucleo_h533re_gcc,
 │                        arch/arm_m_gcc/stm32f4xx_stm32cube, .../stm32h5xx_stm32cube）
-└── toppers-asp/       ASP仕様マニュアル（doc/）・サンプル（example/）
+├── asp_docs/          ASP仕様マニュアル（TOPPERS-ASP_*.md）
+└── asp_examples/      ASPサンプル（19本）
 ```
 
 ## ビルド（CLI 概要）

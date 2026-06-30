@@ -164,24 +164,24 @@ cup_timer_asp/
 ### OS
 - TOPPERS/ASPカーネル(ASPカーネル)を使用する
   - ITRON仕様をベースにしているが異なるため，必ずコードの書く前にはマニュアルを読むこと
-- ASPカーネルは **μITRON 4.0仕様をベースとしているが完全互換ではない**。`TA_TFIFO`/`TA_MFIFO` 等の値=0属性，`acre_*`/`del_*` の動的生成API，`frsm_tsk`/`set_tim` 等は **使えない**。差分の詳細は `doc/TOPPERS-ASP_RTOS仕様.md` の §1.1 を参照。
+- ASPカーネルは **μITRON 4.0仕様をベースとしているが完全互換ではない**。`TA_TFIFO`/`TA_MFIFO` 等の値=0属性，`acre_*`/`del_*` の動的生成API，`frsm_tsk`/`set_tim` 等は **使えない**。差分の詳細は `asp_docs/TOPPERS-ASP_RTOS仕様.md` の §1.1 を参照。
 - **すべてのカーネルオブジェクトは静的API（`.cfg`）で生成**する。動的生成APIはASP標準では未サポート。タスク・セマフォ・イベントフラグ・データキュー・ミューテックス・固定長メモリプール・周期ハンドラ・アラームハンドラ・ISR等は `.cfg` の `CRE_*`/`DEF_*`/`ATT_*`/`CFG_INT` で予め登録する。
 - device/ 以下のファイルは原則変更しない（F401RE版は無変更）。
   - ただし **H533RE版は移植上 device/ の書き換えが必須**（F4の生レジスタ→H5のCMSIS、ピン差 PUSH=PC7/8・SW4=PC9・プルダウン）。`H533RE/device/` は H5 用に書き換え済み。`F401RE/device/` は元のまま。
 
 #### ASPカーネルのマニュアル
 
-`../toppers-asp/doc/` 配下のスタイルガイドを参照すること
+`asp_docs/` 配下のスタイルガイドを参照すること
 
-- `doc/TOPPERS-ASP_RTOS仕様.md` — 概念・状態モデル・初期化／終了。**§1.1 にμITRON 4.0との差分一覧**
-- `doc/TOPPERS-ASP_API仕様.md` — サービスコール（C言語API）
-- `doc/TOPPERS-ASP_静的API_API仕様.md` — `.cfg` の静的API
-- `doc/TOPPERS-ASP_静的API_エラー.md` — エラーコード一覧
-- `doc/TOPPERS-ASP_クイックルール.md` — FreeRTOS/Zephyr対応表＋頻出パターン
+- `asp_docs/TOPPERS-ASP_RTOS仕様.md` — 概念・状態モデル・初期化／終了。**§1.1 にμITRON 4.0との差分一覧**
+- `asp_docs/TOPPERS-ASP_API仕様.md` — サービスコール（C言語API）
+- `asp_docs/TOPPERS-ASP_静的API_API仕様.md` — `.cfg` の静的API
+- `asp_docs/TOPPERS-ASP_静的API_エラー.md` — エラーコード一覧
+- `asp_docs/TOPPERS-ASP_クイックルール.md` — FreeRTOS/Zephyr対応表＋頻出パターン
 
 #### サンプル
 
-`../toppers-asp/example/` 配下のサンプル19本をテンプレートとして使う。インデックスは `README.md` を参照。
+`asp_examples/` 配下のサンプル19本をテンプレートとして使う。インデックスは `README.md` を参照。
 
 ### 評価ボード
 - NUCLEO-F401RE（Cortex-M4）+ enpit-Emb シールド
@@ -228,7 +228,7 @@ cup_timer_asp/
 - gdbによるデバッグ
   - F401RE: `make db`（ST-LINK gdbserver）
   - **H533RE: OpenOCD を gdbserver に使う**（ST-LINK_gdbserver は本環境で error 32/255）。
-    OpenOCD設定例は `toppers-asp` 系の参照（stlink-dap + dapdirect_swd）。
+    OpenOCD設定（stlink-dap + dapdirect_swd）を gdbserver に用いる。
     flash上のブレークは `hbreak`、終了は必ず `detach`（kill するとwedge→USB再接続で復帰）
 
 ## 開発に伴うドキュメント

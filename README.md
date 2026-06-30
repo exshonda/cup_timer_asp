@@ -30,7 +30,7 @@ cd F401RE/cup_timer    # または H533RE/cup_timer
 make                   # asp.elf を生成
 ```
 - ツールチェーン: `arm-none-eabi-gcc` ＋ make（UNIX環境）。
-- H533RE版は SYSCLK 250MHz / **ソフト浮動小数点**（Cortex-M33の制約。AGENTS.md参照）。
+- H533RE版は SYSCLK 32MHz（HSI/2・asp3検証済設定流用）/ **ソフト浮動小数点**（Cortex-M33の制約。AGENTS.md参照）。
 
 ## ボード差（F401RE → H533RE）
 enpit-Emb シールドの Arduino 位置→MCUピン対応がボードで一部異なる：

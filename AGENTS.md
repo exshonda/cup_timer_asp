@@ -221,7 +221,8 @@ cup_timer_asp/
 - ビルド
   - `make` → `asp.elf` 生成
   - ボードは各 `cup_timer/Makefile` の `TARGET`（`nucleo_f401re_gcc` / `nucleo_h533re_gcc`）で決まる
-  - H533RE版は SYSCLK 250MHz・**ソフト浮動小数点**（Cortex-M33で classic ASP のFPUコンテキストが
+  - H533RE版は SYSCLK 32MHz（HSI/2・asp3検証済設定流用。`target_config.h` の `SYS_CLOCK` と
+    `systemclock_config.c` が一致）・**ソフト浮動小数点**（Cortex-M33で classic ASP のFPUコンテキストが
     ARMv8-M非対応のため。FPUは無効＝cup_timerは浮動小数点未使用で影響なし）
 - 書き込み
   - `STM32_Programmer_CLI -c port=SWD -w asp.elf -v -hardRst`

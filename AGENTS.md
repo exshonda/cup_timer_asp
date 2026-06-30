@@ -119,25 +119,44 @@ state 点滅 {
 3. 
 ## アーキテクチャ
 
-### ディレクトリ構成
-- [cup_timer/](cup_timer/) — アプリケーションプロジェクト
-- [device/](device/) — STM32F4共通ハードウェアライブラリ
+### ディレクトリ構成（ボード別に分割）
+本プロジェクトは **NUCLEO-F401RE** と **NUCLEO-H533RE** に対応し、ボード別に分かれている。
 
-### 主要ファイル
+```
+cup_timer_asp/
+├── F401RE/cup_timer/  F401RE アプリ（cup_timer.c/.h, asp_prog.cfg, Makefile, CubeIDEプロジェクト）
+├── F401RE/device/     F401RE HAL（STM32F4・生レジスタ）
+├── H533RE/cup_timer/  H533RE アプリ（TARGET=nucleo_h533re_gcc）
+├── H533RE/device/     H533RE HAL（STM32H5・CMSIS）
+└── asp/               TOPPERS/ASP カーネル本体＋ターゲット依存部
+```
+- カーネルのターゲット依存部は `asp/target/nucleo_f401re_gcc`／`asp/target/nucleo_h533re_gcc`、
+  チップ層は `asp/arch/arm_m_gcc/stm32f4xx_stm32cube`／`.../stm32h5xx_stm32cube`。
+
+### 主要ファイル（各ボード `<BOARD>/` 配下）
 | ファイル | 役割 |
 |----------|------|
-| [cup_timer/cup_timer.c](cup_timer/cup_timer.c) | タスクなど |
-| [cup_timer/cup_timer.h](cup_timer/cup_timer.h) | cup_timerのタスク定義など |
-| [cup_timer/asp_prog.cfg](cup_timer/asp_prog.cfg) | カーネルコンフィギュレーションファイル |
-| [cup_timer/Makefile](cup_timer/Makefile) | メイクファイル |
+| `cup_timer/cup_timer.c` | タスクなど |
+| `cup_timer/cup_timer.h` | cup_timerのタスク定義など |
+| `cup_timer/asp_prog.cfg` | カーネルコンフィギュレーション |
+| `cup_timer/Makefile` | メイクファイル（`TARGET` でボード切替） |
 
-### 共通ファイル
+### デバイス(HAL)ファイル（各ボード `<BOARD>/device/`）
 | ファイル | 役割 |
 |----------|------|
-| [device/device.c](device/device.c) | デバイスドライバ |
-| [device/device.h](device/device.h) | 上記のヘッダファイル |
-| [device/cmsis_f4.h](device/cmsis_f4.h) | Cortex-M4用定義 |
-| [device/stm32f4xx.h](device/stm32f4xx.h) | ハードウェア初期化等の必要定義 |
+| `device/device.c` / `device.h` | デバイスドライバ（LED/スイッチ/プッシュ） |
+| F401RE: `cmsis_f4.h`, `stm32f4xx.h` | F4用定義（生レジスタ） |
+| H533RE: CMSIS は `asp/arch/.../stm32h5xx_stm32cube/CMSIS` を使用 | H5は CMSIS 構造体アクセス |
+
+### ボード差（enpit-Emb シールド / Arduino位置→MCUピン）
+| 信号 | F401RE | H533RE |
+|------|--------|--------|
+| LED1-4 | PA8/7/6/5 | PA8/7/6/5（同一）|
+| SW1-3 | PB3/4/5 | PB3/4/5（同一）|
+| **SW4** | PB6 | **PC9** |
+| **PUSH1/2** | PA9/PA10 | **PC7/PC8**（内部プルダウン）|
+
+スイッチ・プッシュは EXTI 割込ではなく**周期ハンドラ `SW_SCAN_HANDLER` でポーリング**する。
 
 
 ## 開発実行環境
@@ -147,7 +166,8 @@ state 点滅 {
   - ITRON仕様をベースにしているが異なるため，必ずコードの書く前にはマニュアルを読むこと
 - ASPカーネルは **μITRON 4.0仕様をベースとしているが完全互換ではない**。`TA_TFIFO`/`TA_MFIFO` 等の値=0属性，`acre_*`/`del_*` の動的生成API，`frsm_tsk`/`set_tim` 等は **使えない**。差分の詳細は `doc/TOPPERS-ASP_RTOS仕様.md` の §1.1 を参照。
 - **すべてのカーネルオブジェクトは静的API（`.cfg`）で生成**する。動的生成APIはASP標準では未サポート。タスク・セマフォ・イベントフラグ・データキュー・ミューテックス・固定長メモリプール・周期ハンドラ・アラームハンドラ・ISR等は `.cfg` の `CRE_*`/`DEF_*`/`ATT_*`/`CFG_INT` で予め登録する。
-- device/ 以下のファイルは変更しない
+- device/ 以下のファイルは原則変更しない（F401RE版は無変更）。
+  - ただし **H533RE版は移植上 device/ の書き換えが必須**（F4の生レジスタ→H5のCMSIS、ピン差 PUSH=PC7/8・SW4=PC9・プルダウン）。`H533RE/device/` は H5 用に書き換え済み。`F401RE/device/` は元のまま。
 
 #### ASPカーネルのマニュアル
 
@@ -164,8 +184,11 @@ state 点滅 {
 `../toppers-asp/example/` 配下のサンプル19本をテンプレートとして使う。インデックスは `README.md` を参照。
 
 ### 評価ボード
-- NUCLEO-F401RE + enpit-Emb シールド
-  - ST-Linkによるデバッグが可能
+- NUCLEO-F401RE（Cortex-M4）+ enpit-Emb シールド
+- NUCLEO-H533RE（Cortex-M33）+ enpit-Emb シールド
+  - いずれも ST-Link によるデバッグが可能
+  - **H533RE のCLIデバッグ/CubeIDEデバッグは ST-LINK_gdbserver が本環境で失敗（error 32/255）するため、
+    OpenOCD を使う**（CubeIDE: デバッグ構成のプローブを「ST-LINK (OpenOCD)」に設定）。
 
 ### 開発環境
 - STM32CubeIDE 2.1.1
@@ -174,21 +197,13 @@ state 点滅 {
 ### ビルド
 
 ### STM32CubeIDEよるGUIビルド
-- STM32CubeIDEを起動して，ワークスペースを作成する．
-  - 本レポジトリをトップとすることを推奨
-- File -> Import を選択して，ダイアログボックス開いたらExisting Project int Workspaceを選択
-- 次のダイアログボックスでSelect root directory のBrowseを選択して，本レポジトリをトップを選択
-  - すでに指定されていてももう一度選択
-  - Projects に cup_timer があるのでチェックボックスをチェック
-  - Finishを選択してインポート
-- ビルド
-  - プロジェクトビューからcup_timerを選択して右クリックしてBuild Projectを選択
-  - asp.elf が完成すれば成功
-- 実行&デバッグ
-  - cup_timer.launch を右クリック
-    - Debug As -> cup_timer を選択
-  - シリアルポートにRTOSの出力が出力される
-    - 115200bps
+- STM32CubeIDEを起動して，ワークスペースを作成する（本レポジトリをトップ推奨）。
+- File -> Import -> Existing Projects into Workspace を選択し，本レポジトリをトップに指定。
+  - Projects に各ボードのプロジェクト（`cup_timer_asp_f401re` / `cup_timer_asp_h533re`）が出るのでチェックしてインポート。
+- ビルド：対象プロジェクトを右クリック -> Build Project。`asp.elf` が完成すれば成功。
+- 実行&デバッグ：プロジェクト内の `cup_timer_*.launch` を Debug As で実行。シリアル 115200bps にRTOS出力。
+  - **H533RE はデバッグプローブを「ST-LINK (OpenOCD)」にすること**（ST-LINK_gdbserver は本環境で失敗）。
+    `cup_timer_asp_h533re` の launch は OpenOCD 構成で保存済み。
 
 ### CLIビルド
 - 環境構築
@@ -202,13 +217,19 @@ state 点滅 {
       - STM32CUBEIDE_PLUGINS = C:/sw/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins
 - ターミナルの実行
   - Cygwinの場合 : Cygwinを起動する(-l -cをオプションで指定する)
-  - cup_timerに移動
+  - 対象ボードの `cup_timer` に移動（`F401RE/cup_timer` または `H533RE/cup_timer`）
 - ビルド
-  - make
-- 実行
-  - maker run 
+  - `make` → `asp.elf` 生成
+  - ボードは各 `cup_timer/Makefile` の `TARGET`（`nucleo_f401re_gcc` / `nucleo_h533re_gcc`）で決まる
+  - H533RE版は SYSCLK 250MHz・**ソフト浮動小数点**（Cortex-M33で classic ASP のFPUコンテキストが
+    ARMv8-M非対応のため。FPUは無効＝cup_timerは浮動小数点未使用で影響なし）
+- 書き込み
+  - `STM32_Programmer_CLI -c port=SWD -w asp.elf -v -hardRst`
 - gdbによるデバッグ
-  - maker db
+  - F401RE: `make db`（ST-LINK gdbserver）
+  - **H533RE: OpenOCD を gdbserver に使う**（ST-LINK_gdbserver は本環境で error 32/255）。
+    OpenOCD設定例は `toppers-asp` 系の参照（stlink-dap + dapdirect_swd）。
+    flash上のブレークは `hbreak`、終了は必ず `detach`（kill するとwedge→USB再接続で復帰）
 
 ## 開発に伴うドキュメント
 

@@ -12,3 +12,6 @@ kernel_cfg.*
 libkernel.a
 offset.h
 makeoffset.s
+.metadata/
+build_*/
+RemoteSystemsTempFiles/

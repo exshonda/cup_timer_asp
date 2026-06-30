@@ -81,7 +81,7 @@
 /*
  *  クロック
  */
-#define SYS_CLOCK		32000000	/* HSI/2 = 32MHz (Step2a 起動検証用。高速化は後で) */
+#define SYS_CLOCK		250000000	/* HSE24MHz->PLL1 = 250MHz */
 
 /*
  * IDLE処理の定義
